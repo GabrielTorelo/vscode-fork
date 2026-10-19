@@ -374,8 +374,6 @@ export class CustomInstructionsService extends Disposable implements ICustomInst
 		let fileUris: Uri[];
 		if (customInstructionsFile.startsWith('~/')) {
 			fileUris = [Uri.joinPath(this.envService.userHome, customInstructionsFile.substring(2))];
-		} else if (isAbsolute(customInstructionsFile)) {
-			fileUris = [URI.file(customInstructionsFile)];
 		} else {
 			fileUris = this.workspaceService.getWorkspaceFolders().map(folderUri => Uri.joinPath(folderUri, customInstructionsFile));
 		}
