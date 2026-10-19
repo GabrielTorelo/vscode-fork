@@ -401,4 +401,41 @@ suite('CustomInstructionsService - Skills', () => {
 			expect(await customInstructionsService.isExternalInstructionsFile(tildeFileUri)).toBe(true);
 		});
 	});
+
+	suite('fetchInstructionsFromSetting', () => {
+		test('should read an instructions file from a tilde path', async () => {
+			await mockFiles(fileSystemService, [
+				{ path: '/home/testuser/commit-instructions.md', contents: ['Use conventional commits.'] }
+			]);
+			await configService.setConfig(ConfigKey.CommitMessageGenerationInstructions, [{ file: '~/commit-instructions.md' }]);
+
+			const result = await customInstructionsService.fetchInstructionsFromSetting(ConfigKey.CommitMessageGenerationInstructions);
+
+			expect(result.map(r => ({ content: r.content, reference: r.reference.toString() }))).toEqual([
+				{ content: [{ instruction: 'Use conventional commits.', languageId: undefined }], reference: URI.file('/home/testuser/commit-instructions.md').toString() }
+			]);
+		});
+
+		test('should resolve a relative path against the workspace folder', async () => {
+			await mockFiles(fileSystemService, [
+				{ path: '/workspace/.github/commit-instructions.md', contents: ['Use conventional commits.'] }
+			]);
+			await configService.setConfig(ConfigKey.CommitMessageGenerationInstructions, [{ file: '.github/commit-instructions.md' }]);
+
+			const result = await customInstructionsService.fetchInstructionsFromSetting(ConfigKey.CommitMessageGenerationInstructions);
+
+			expect(result.map(r => r.reference.toString())).toEqual([URI.file('/workspace/.github/commit-instructions.md').toString()]);
+		});
+
+		test('should keep resolving a leading slash path against the workspace folder', async () => {
+			await mockFiles(fileSystemService, [
+				{ path: '/workspace/.github/commit-instructions.md', contents: ['Use conventional commits.'] }
+			]);
+			await configService.setConfig(ConfigKey.CommitMessageGenerationInstructions, [{ file: '/.github/commit-instructions.md' }]);
+
+			const result = await customInstructionsService.fetchInstructionsFromSetting(ConfigKey.CommitMessageGenerationInstructions);
+
+			expect(result.map(r => r.reference.toString())).toEqual([URI.file('/workspace/.github/commit-instructions.md').toString()]);
+		});
+	});
 });
