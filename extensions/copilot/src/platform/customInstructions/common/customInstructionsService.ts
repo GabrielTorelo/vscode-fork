@@ -371,8 +371,15 @@ export class CustomInstructionsService extends Disposable implements ICustomInst
 
 	private async _collectInstructionsFromFile(customInstructionsFile: string, language: string | undefined, result: ICustomInstructions[]): Promise<void> {
 		this.logService.debug(`Collect instructions from file: ${customInstructionsFile}`);
-		const promises = this.workspaceService.getWorkspaceFolders().map(async folderUri => {
-			const fileUri = Uri.joinPath(folderUri, customInstructionsFile);
+		let fileUris: Uri[];
+		if (customInstructionsFile.startsWith('~/')) {
+			fileUris = [Uri.joinPath(this.envService.userHome, customInstructionsFile.substring(2))];
+		} else if (isAbsolute(customInstructionsFile)) {
+			fileUris = [URI.file(customInstructionsFile)];
+		} else {
+			fileUris = this.workspaceService.getWorkspaceFolders().map(folderUri => Uri.joinPath(folderUri, customInstructionsFile));
+		}
+		const promises = fileUris.map(async fileUri => {
 			const instruction = await this.readInstructionsFromFile(fileUri, language);
 			if (instruction) {
 				result.push(instruction);
